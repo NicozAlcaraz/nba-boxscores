@@ -69,3 +69,9 @@ Boxscore / Summary:
 - https://site.web.api.espn.com/apis/site/v2/sports/basketball/nba/summary
 
 These public JSON endpoints are parsed to display live and historical stats.
+
+---
+
+## Live
+Check the running app without the need to setup the whole repository:
+- https://nba-boxscores.streamlit.app
