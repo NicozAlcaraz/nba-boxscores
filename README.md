@@ -49,6 +49,8 @@ Local: http://localhost:8501 (or whatever the commandline tells you)
 
 Network: your LAN address (useful for mobile viewing)
 
+---
+
 ## Usage
 In the sidebar, choose:
 - Mode: “Today (live)” for real-time scores, or “Pick a date” for past games
@@ -56,6 +58,8 @@ In the sidebar, choose:
 - Adjust Auto-refresh (sec) if in live mode
 - The app will fetch and display all games for the selected date.
 - For live games, the page refreshes automatically to keep data updated.
+
+---
 
 ## ESPN Endpoints Used
 Scoreboard:
