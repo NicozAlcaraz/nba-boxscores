@@ -222,7 +222,6 @@ st.markdown(
 )
 
 
-# Actually trigger auto-refresh for today mode
 with st.sidebar:
     st.markdown("### Filters")
 
