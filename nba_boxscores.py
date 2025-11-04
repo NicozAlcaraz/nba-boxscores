@@ -239,7 +239,7 @@ with st.sidebar:
     if mode == "Today (live)":
         refresh_seconds = st.slider(
             "Auto-refresh (sec)",
-            min_value=10,
+            min_value=5,
             max_value=120,
             value=20,
             step=5,
