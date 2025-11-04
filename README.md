@@ -29,7 +29,7 @@ It features a modern dark UI with responsive game cards, auto-refresh for live g
 Clone the repository:
 
 ```bash
-git clone https://github.com/<your-username>/nba-boxscores.git
+git clone https://github.com/nicozalcaraz/nba-boxscores.git
 cd nba-boxscores
 
 
