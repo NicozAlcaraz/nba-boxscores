@@ -3,7 +3,7 @@ from utils.css import CUSTOM_CSS
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 from utils.api import fetch_scoreboard, fetch_boxscore, extract_team_line, classify_status, get_competitors
-
+from utils.date import get_nba_today
 
 
 # Styling
@@ -29,7 +29,8 @@ st.markdown(
 with st.sidebar:
     st.markdown("### Filters")
 
-    today = date.today()
+    #sync usa time to local time of wherever someone is accessing this.
+    today = get_nba_today()
     mode = st.radio("Mode", ["Today (live)", "Pick a date"])
 
     if mode == "Today (live)":
