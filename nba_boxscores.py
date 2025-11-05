@@ -2,7 +2,7 @@ from datetime import date, datetime
 from utils.css import CUSTOM_CSS
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
-from utils.api import fetch_scoreboard, fetch_boxscore, extract_team_line, classify_status, get_competitors
+from utils.api import fetch_scoreboard, fetch_boxscore, extract_team_line, classify_status, get_competitors, extract_player_tables
 from utils.date import get_nba_today
 
 
@@ -29,7 +29,7 @@ st.markdown(
 with st.sidebar:
     st.markdown("### Filters")
 
-    #sync usa time to local time of wherever someone is accessing this.
+    # Use whatever logic you have for 'today' (local or US Eastern)
     today = get_nba_today()
     mode = st.radio("Mode", ["Today (live)", "Pick a date"])
 
@@ -40,6 +40,33 @@ with st.sidebar:
 
     show_team_stats = st.checkbox("Show team stat breakdown", value=True)
 
+    # ---- Team filter (focus on specific teams) ----
+    team_options = []
+    try:
+        # Use cached scoreboard to build list of teams for this date
+        sb_preview = fetch_scoreboard(selected_date)
+        preview_events = sb_preview.get("events", [])
+        team_abbrevs = set()
+
+        for ev in preview_events:
+            away, home = get_competitors(ev)
+            for comp in (away, home):
+                team = (comp or {}).get("team", {})
+                abbr = team.get("abbreviation")
+                if abbr:
+                    team_abbrevs.add(abbr)
+
+        team_options = sorted(team_abbrevs)
+    except Exception:
+        team_options = []
+
+    focus_teams = st.multiselect(
+        "Focus on team(s)",
+        options=team_options,
+        help="Only show games where at least one selected team is playing.",
+    )
+
+    # ---- Auto-refresh for live mode ----
     refresh_seconds = None
     if mode == "Today (live)":
         refresh_seconds = st.slider(
@@ -50,11 +77,12 @@ with st.sidebar:
             step=5,
         )
 
-        #  Actually enable auto-refresh when on today's slate
+        # Actually enable auto-refresh when on today's slate
         st_autorefresh(
             interval=refresh_seconds * 1000,  # milliseconds
             key="live_refresh",
         )
+
 
 
 # Main content
@@ -98,6 +126,11 @@ for event in events:
     away_abbrev = away_team.get("abbreviation", "")
     home_abbrev = home_team.get("abbreviation", "")
 
+    if focus_teams:
+        if away_abbrev not in focus_teams and home_abbrev not in focus_teams:
+            continue
+
+
     # Card wrapper
     st.markdown('<div class="game-card">', unsafe_allow_html=True)
 
@@ -130,63 +163,90 @@ for event in events:
     st.markdown('<hr class="hr-soft" />', unsafe_allow_html=True)
 
     # Box score / team stats
-    if show_team_stats and event_id:
+    if event_id:
         try:
             summary = fetch_boxscore(event_id)
             box = summary.get("boxscore", {})
             team_entries = box.get("teams", [])
 
-            if len(team_entries) == 2:
-                away_box = extract_team_line(team_entries[0])
-                home_box = extract_team_line(team_entries[1])
+            # ── Team stats (your existing behavior, guarded by show_team_stats) ──
+            if show_team_stats:
+                if len(team_entries) == 2:
+                    away_box = extract_team_line(team_entries[0])
+                    home_box = extract_team_line(team_entries[1])
 
-                c1, c2 = st.columns(2)
+                    c1, c2 = st.columns(2)
 
-                def render_team_block(team_data, align_right=False):
-                    align = "right" if align_right else "left"
-                    st.markdown(
-                        f"<div style='text-align:{align};margin-bottom:0.3rem;'>"
-                        f"<span style='font-size:0.9rem;color:#9ca3af;'>"
-                        f"{team_data['abbrev']}</span><br/>"
-                        f"<span style='font-size:1.05rem;font-weight:600;'>{team_data['name']}</span>"
-                        "</div>",
-                        unsafe_allow_html=True,
-                    )
 
-                    # Simple 2-column stat table
-                    rows = [
-                        ("FG", team_data["FG"]),
-                        ("3PT", team_data["3PT"]),
-                        ("FT", team_data["FT"]),
-                        ("REB", team_data["REB"]),
-                        ("AST", team_data["AST"]),
-                        ("STL", team_data["STL"]),
-                        ("BLK", team_data["BLK"]),
-                        ("TO", team_data["TO"]),
-                        ("PIP", team_data["PIP"]),
-                        ("FBPs", team_data["FBPs"]),
-                    ]
-                    html_rows = "".join(
-                        f"<tr><td>{label}</td><td style='text-align:right;'>{val}</td></tr>"
-                        for label, val in rows if val != ""
-                    )
-                    table_html = (
-                        "<table>"
-                        "<thead><tr><th>Stat</th><th style='text-align:right;'>Value</th></tr></thead>"
-                        f"<tbody>{html_rows}</tbody>"
-                        "</table>"
-                    )
-                    st.markdown(table_html, unsafe_allow_html=True)
+                    def render_team_block(team_data, align_right=False):
+                        align = "right" if align_right else "left"
+                        st.markdown(
+                            f"<div style='text-align:{align};margin-bottom:0.3rem;'>"
+                            f"<span style='font-size:0.9rem;color:#9ca3af;'>"
+                            f"{team_data['abbrev']}</span><br/>"
+                            f"<span style='font-size:1.05rem;font-weight:600;'>{team_data['name']}</span>"
+                            "</div>",
+                            unsafe_allow_html=True,
+                        )
 
-                with c1:
-                    render_team_block(away_box, align_right=False)
-                with c2:
-                    render_team_block(home_box, align_right=True)
+                        # Simple 2-column stat table
+                        rows = [
+                            ("FG", team_data["FG"]),
+                            ("3PT", team_data["3PT"]),
+                            ("FT", team_data["FT"]),
+                            ("REB", team_data["REB"]),
+                            ("AST", team_data["AST"]),
+                            ("STL", team_data["STL"]),
+                            ("BLK", team_data["BLK"]),
+                            ("TO", team_data["TO"]),
+                            ("PIP", team_data["PIP"]),
+                            ("FBPs", team_data["FBPs"]),
+                        ]
+                        html_rows = "".join(
+                            f"<tr><td>{label}</td><td style='text-align:right;'>{val}</td></tr>"
+                            for label, val in rows if val != ""
+                        )
+                        table_html = (
+                            "<table>"
+                            "<thead><tr><th>Stat</th><th style='text-align:right;'>Value</th></tr></thead>"
+                            f"<tbody>{html_rows}</tbody>"
+                            "</table>"
+                        )
+                        st.markdown(table_html, unsafe_allow_html=True)
 
-            else:
-                st.caption("Team box-score data not available for this game (structure was unexpected).")
+
+                    with c1:
+                        render_team_block(away_box, align_right=False)
+                    with c2:
+                        render_team_block(home_box, align_right=True)
+
+                else:
+                    st.caption("Team box-score data not available for this game (structure was unexpected).")
+
+            # ── Player stats (new) ──
+            player_tables = extract_player_tables(summary)
+
+            with st.expander("Show player stats"):
+                cpa, cph = st.columns(2)
+
+                with cpa:
+                    st.markdown(f"**{away_abbrev} Players**")
+                    away_players = player_tables.get(away_abbrev, [])
+                    if away_players:
+                        st.table(away_players)
+                    else:
+                        st.caption("No player stats available.")
+
+                with cph:
+                    st.markdown(f"**{home_abbrev} Players**")
+                    home_players = player_tables.get(home_abbrev, [])
+                    if home_players:
+                        st.table(home_players)
+                    else:
+                        st.caption("No player stats available.")
 
         except Exception as e:
             st.caption(f"Could not load box score for event {event_id}: {e}")
 
     st.markdown("</div>", unsafe_allow_html=True)
+

@@ -92,3 +92,59 @@ def get_competitors(event: dict):
         else:
             away = c
     return away, home
+
+def extract_player_tables(summary: dict):
+    """
+    Build per-team player stat tables from an ESPN boxscore summary.
+
+    Returns:
+        dict: {team_abbrev: [ {Player, MIN, PTS, REB, AST}, ... ], ...}
+    """
+    result = {}
+    box = summary.get("boxscore", {})
+    players_groups = box.get("players", [])
+
+    for team_group in players_groups:
+        team_info = team_group.get("team", {})
+        abbrev = team_info.get("abbreviation")
+        if not abbrev:
+            continue
+
+        statistics = team_group.get("statistics", [])
+        if not statistics:
+            continue
+
+        # Use the first stat schema (usually the main one)
+        stat_meta = statistics[0]
+        labels = stat_meta.get("labels") or []
+        label_index = {label: idx for idx, label in enumerate(labels)}
+
+        def pick_stat(row_stats, label_candidates):
+            for lab in label_candidates:
+                idx = label_index.get(lab)
+                if idx is not None and idx < len(row_stats):
+                    return row_stats[idx]
+            return ""
+
+        rows = []
+        for athlete_entry in team_group.get("athletes", []):
+            athlete = athlete_entry.get("athlete", {})
+            stat_sets = athlete_entry.get("stats", [])
+            if not stat_sets:
+                continue
+
+            # Assume first stat set matches labels
+            row_stats = stat_sets[0]
+
+            row = {
+                "Player": athlete.get("displayName", "Unknown"),
+                "MIN": pick_stat(row_stats, ["MIN", "Minutes"]),
+                "PTS": pick_stat(row_stats, ["PTS", "Points"]),
+                "REB": pick_stat(row_stats, ["REB", "Rebounds"]),
+                "AST": pick_stat(row_stats, ["AST", "Assists"]),
+            }
+            rows.append(row)
+
+        result[abbrev] = rows
+
+    return result
