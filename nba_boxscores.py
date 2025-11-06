@@ -4,7 +4,7 @@ import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 from utils.api import fetch_scoreboard, fetch_boxscore, extract_team_line, classify_status, get_competitors, extract_player_tables
 from utils.date import get_nba_today
-
+from zoneinfo import ZoneInfo
 
 # Styling
 
@@ -22,6 +22,19 @@ st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 st.markdown(
     "<h1 style='margin-bottom:0.2rem;'>🏀 NBA Box Scores (ESPN)</h1>"
     "<p style='color:#9ca3af;font-size:0.85rem;margin-top:0;'>Live & historical box scores from ESPN’s public endpoints.</p>",
+    unsafe_allow_html=True,
+)
+
+# Current US Eastern time banner
+eastern_time = datetime.now(ZoneInfo("America/New_York"))
+st.markdown(
+    f"""
+    <div class="est-banner">
+        <div class="est-label">Current NBA Time · US Eastern</div>
+        <div class="est-time">{eastern_time.strftime('%I:%M %p')}</div>
+        <div class="est-date">{eastern_time.strftime('%A · %B %d, %Y')}</div>
+    </div>
+    """,
     unsafe_allow_html=True,
 )
 
