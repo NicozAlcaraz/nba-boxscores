@@ -21,7 +21,7 @@ st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
 st.markdown(
     "<h1 style='margin-bottom:0.2rem;'>🏀 NBA Box Scores (ESPN)</h1>"
-    "<p style='color:#9ca3af;font-size:0.85rem;margin-top:0;'>Live & historical box scores from ESPN’s public endpoints.</p>",
+    "<p style='color:#9ca3af;font-size:0.85rem;margin-top:0;'>Live & historical box scores of NBA.</p>",
     unsafe_allow_html=True,
 )
 
