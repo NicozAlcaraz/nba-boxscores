@@ -93,6 +93,60 @@ def get_competitors(event: dict):
             away = c
     return away, home
 
+
+def _player_table_from_competitor(comp: dict):
+    """
+    Build a simple player 'leaders' table for a single team competitor
+    from the scoreboard JSON.
+
+    Returns: list of rows like
+    { "Player": ..., "Pos": ..., "Jersey": ..., "PTS": ..., "REB": ..., "AST": ..., "Line": ... }
+    """
+    if not comp:
+        return []
+
+    leaders = comp.get("leaders", []) or []
+    players = {}  # athlete_id -> row dict
+
+    def ensure_row(athlete: dict):
+        aid = athlete.get("id")
+        if not aid:
+            return None
+        if aid not in players:
+            players[aid] = {
+                "Player": athlete.get("displayName") or athlete.get("fullName") or "Unknown",
+                "Pos": (athlete.get("position") or {}).get("abbreviation", ""),
+                "Jersey": athlete.get("jersey", ""),
+                "PTS": "",
+                "REB": "",
+                "AST": "",
+                "Line": "",
+            }
+        return players[aid]
+
+    for cat in leaders:
+        cat_name = (cat.get("name") or "").lower()  # "points", "rebounds", "assists", "rating", etc.
+        for entry in cat.get("leaders", []) or []:
+            athlete = entry.get("athlete") or {}
+            row = ensure_row(athlete)
+            if row is None:
+                continue
+
+            value = entry.get("displayValue", "")
+            if cat_name == "points":
+                row["PTS"] = value
+            elif cat_name == "rebounds":
+                row["REB"] = value
+            elif cat_name == "assists":
+                row["AST"] = value
+            elif cat_name == "rating":
+                # e.g. "46 PTS, 8 AST"
+                row["Line"] = value
+
+    # Return rows as a list (you can sort by points if you want)
+    return list(players.values())
+
+
 def extract_player_tables(summary: dict):
     """
     Build per-team player stat tables from an ESPN boxscore summary.
@@ -102,21 +156,21 @@ def extract_player_tables(summary: dict):
     """
     result = {}
     box = summary.get("boxscore", {})
-    players_groups = box.get("players", [])
+    players_groups = box.get("players", []) or []
 
     for team_group in players_groups:
-        team_info = team_group.get("team", {})
+        team_info = team_group.get("team", {}) or {}
         abbrev = team_info.get("abbreviation")
         if not abbrev:
             continue
 
-        statistics = team_group.get("statistics", [])
+        statistics = team_group.get("statistics") or []
         if not statistics:
             continue
 
-        # Use the first stat schema (usually the main one)
-        stat_meta = statistics[0]
-        labels = stat_meta.get("labels") or []
+        # Use the first statistics block as the base line (usually the main box)
+        base_stats = statistics[0]
+        labels = base_stats.get("labels") or []
         label_index = {label: idx for idx, label in enumerate(labels)}
 
         def pick_stat(row_stats, label_candidates):
@@ -127,17 +181,17 @@ def extract_player_tables(summary: dict):
             return ""
 
         rows = []
-        for athlete_entry in team_group.get("athletes", []):
-            athlete = athlete_entry.get("athlete", {})
-            stat_sets = athlete_entry.get("stats", [])
-            if not stat_sets:
-                continue
-
-            # Assume first stat set matches labels
-            row_stats = stat_sets[0]
+        # NOTE: athletes are nested under base_stats, not directly under team_group
+        for athlete_entry in base_stats.get("athletes", []) or []:
+            athlete = athlete_entry.get("athlete", {}) or {}
+            row_stats = athlete_entry.get("stats", []) or []
 
             row = {
-                "Player": athlete.get("displayName", "Unknown"),
+                "Player": (
+                    athlete.get("displayName")
+                    or athlete.get("fullName")
+                    or "Unknown"
+                ),
                 "MIN": pick_stat(row_stats, ["MIN", "Minutes"]),
                 "PTS": pick_stat(row_stats, ["PTS", "Points"]),
                 "REB": pick_stat(row_stats, ["REB", "Rebounds"]),
