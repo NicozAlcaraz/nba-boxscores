@@ -103,5 +103,55 @@ tbody tr td {
     border-top: 1px solid rgba(148,163,184,0.25);
     margin: 0.7rem 0 0.5rem 0;
 }
+
+/* EST time banner */
+.est-banner {
+    margin: 0.75rem 0 1.25rem 0;
+    padding: 0.9rem 1.4rem;
+    border-radius: 999px;
+    display: flex;
+    align-items: baseline;
+    gap: 0.9rem;
+    background: linear-gradient(120deg,
+        rgba(30,64,175,0.95),
+        rgba(129,140,248,0.92),
+        rgba(56,189,248,0.85)
+    );
+    box-shadow: 0 18px 40px rgba(15,23,42,0.85);
+    border: 1px solid rgba(191,219,254,0.65);
+}
+
+.est-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: rgba(226,232,240,0.9);
+    opacity: 0.95;
+}
+
+.est-time {
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: #f9fafb;
+}
+
+.est-date {
+    font-size: 0.9rem;
+    color: rgba(226,232,240,0.95);
+}
+
+/* Mobile tweaks */
+@media (max-width: 768px) {
+    .est-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        border-radius: 18px;
+        padding: 0.85rem 1.1rem;
+        gap: 0.35rem;
+    }
+    .est-time {
+        font-size: 1.4rem;
+    }
+}
 </style>
 """
